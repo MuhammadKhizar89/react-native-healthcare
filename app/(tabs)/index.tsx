@@ -1,6 +1,7 @@
 import React from 'react';
-import { StyleSheet, View, Text, ScrollView, TextInput, Image, TouchableOpacity, SafeAreaView } from 'react-native';
-import { Colors } from '@/constants/theme';
+import { StyleSheet, View, Text, ScrollView, TextInput, Image, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Colors } from '@/constants/Colors';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
