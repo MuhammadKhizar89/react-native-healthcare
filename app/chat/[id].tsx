@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, FlatList, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [otherUserName, setOtherUserName] = useState('Chat');
+  const [sending, setSending] = useState(false);
   const currentUser = auth.currentUser;
 
   useEffect(() => {
@@ -44,11 +45,14 @@ export default function ChatScreen() {
 
   const handleSend = async () => {
     if (inputText.trim() === '') return;
+    setSending(true);
     try {
       await sendMessage(otherUserId, inputText.trim());
       setInputText('');
     } catch (error) {
       console.error("Error sending message:", error);
+    } finally {
+      setSending(false);
     }
   };
 
@@ -93,8 +97,16 @@ export default function ChatScreen() {
             placeholder="Type a message..."
             placeholderTextColor="#9CA3AF"
           />
-          <TouchableOpacity style={styles.sendBtn} onPress={handleSend}>
-            <MaterialIcons name="send" size={24} color="#FFFFFF" />
+          <TouchableOpacity 
+            style={[styles.sendBtn, sending && { opacity: 0.7 }]} 
+            onPress={handleSend}
+            disabled={sending}
+          >
+            {sending ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <MaterialIcons name="send" size={24} color="#FFFFFF" />
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

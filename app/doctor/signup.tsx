@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -19,6 +19,7 @@ export default function DoctorSignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [availability, setAvailability] = useState<Record<string, string[]>>({});
+  const [loading, setLoading] = useState(false);
 
   const handleSignUp = async () => {
     if (!email || !password || !name) {
@@ -37,11 +38,14 @@ export default function DoctorSignUpScreen() {
       return;
     }
 
+    setLoading(true);
     try {
       await signUpDoctor(email, password, name, availability);
       router.replace('/doctor/(tabs)/' as any);
     } catch (error: any) {
       alert(error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -173,8 +177,16 @@ export default function DoctorSignUpScreen() {
             })}
           </View>
 
-          <TouchableOpacity style={styles.signUpBtn} onPress={handleSignUp}>
-            <Text style={styles.signUpBtnText}>Sign Up as Doctor</Text>
+          <TouchableOpacity 
+            style={[styles.signUpBtn, loading && { opacity: 0.7 }]} 
+            onPress={handleSignUp}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.signUpBtnText}>Sign Up as Doctor</Text>
+            )}
           </TouchableOpacity>
 
           <View style={styles.footer}>

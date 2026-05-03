@@ -9,13 +9,13 @@ import { Platform } from 'react-native';
 // TODO: Replace these with your actual Firebase project configuration
 
 const firebaseConfig = {
-  apiKey: "AIzaSyD1HIhSrY4FYZuKkKZvNVPQ-IbUfSvsueM",
-  authDomain: "healthcare-app-c3fb5.firebaseapp.com",
-  projectId: "healthcare-app-c3fb5",
-  storageBucket: "healthcare-app-c3fb5.firebasestorage.app",
-  messagingSenderId: "1091663677004",
-  appId: "1:1091663677004:web:2ea910dffe2aa2e966d6e9",
-  measurementId: "G-LVJ97L43ZQ"
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.EXPO_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 

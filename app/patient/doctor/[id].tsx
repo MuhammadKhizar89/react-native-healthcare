@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -16,6 +16,7 @@ export default function DoctorDetailScreen() {
   const [availableDays, setAvailableDays] = useState<string[]>([]);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [bookedTimes, setBookedTimes] = useState<string[]>([]);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchDoctor = async () => {
@@ -68,6 +69,7 @@ export default function DoctorDetailScreen() {
       alert("This time slot has already been booked. Please choose another one.");
       return;
     }
+    setLoading(true);
     try {
       const doctorId = (id as string) || 'dummy_doctor_id';
       const doctorName = doctor ? doctor.name : 'Unknown Doctor';
@@ -77,6 +79,8 @@ export default function DoctorDetailScreen() {
       router.back();
     } catch (error: any) {
       alert('Error booking appointment: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -191,8 +195,16 @@ export default function DoctorDetailScreen() {
         
         {/* Bottom Button */}
         <View style={styles.bottomFooter}>
-          <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm}>
-            <Text style={styles.confirmBtnText}>Confirm Schedule</Text>
+          <TouchableOpacity 
+            style={[styles.confirmBtn, loading && { opacity: 0.7 }]} 
+            onPress={handleConfirm}
+            disabled={loading}
+          >
+            {loading ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.confirmBtnText}>Confirm Schedule</Text>
+            )}
           </TouchableOpacity>
         </View>
 

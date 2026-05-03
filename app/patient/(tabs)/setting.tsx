@@ -1,14 +1,16 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logoutUser } from '../../../api/firebase/auth';
+import { useState } from 'react';
 
 export default function SettingScreen() {
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -41,17 +43,24 @@ export default function SettingScreen() {
         <View style={styles.divider} />
 
         <TouchableOpacity 
-          style={styles.signOutBtn}
+          style={[styles.signOutBtn, loading && { opacity: 0.7 }]}
+          disabled={loading}
           onPress={async () => {
+            setLoading(true);
             try {
               await logoutUser();
               // RootLayout will automatically handle the redirect
             } catch (error) {
               console.error(error);
+              setLoading(false); // Only set false on error, if success it redirects
             }
           }}
         >
-          <MaterialIcons name="logout" size={24} color="#EF4444" />
+          {loading ? (
+             <ActivityIndicator color="#EF4444" style={{ marginRight: 16 }} />
+          ) : (
+             <MaterialIcons name="logout" size={24} color="#EF4444" />
+          )}
           <Text style={styles.signOutText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
