@@ -3,6 +3,7 @@ import { getAuth, initializeAuth, Auth } from 'firebase/auth';
 // @ts-ignore - TS doesn't correctly resolve the React Native specific exports
 import { getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
@@ -36,5 +37,6 @@ if (Platform.OS === 'web') {
 }
 
 const db = getFirestore(app);
+const storage = getStorage(app);
 
-export { app, auth, db };
+export { app, auth, db, storage };

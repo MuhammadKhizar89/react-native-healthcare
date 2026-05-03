@@ -1,11 +1,12 @@
 import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useEffect, useState } from 'react';
 import { doc, getDoc } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import { auth, db } from '../../api/firebase/config';
 
 export default function ProfileScreen() {
@@ -13,16 +14,16 @@ export default function ProfileScreen() {
   const [userData, setUserData] = useState<any>(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
-      if (auth.currentUser) {
-        const docRef = doc(db, 'users', auth.currentUser.uid);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const docRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setUserData(docSnap.data());
         }
       }
-    };
-    fetchUser();
+    });
+    return () => unsubscribe();
   }, []);
 
   return (
@@ -39,9 +40,13 @@ export default function ProfileScreen() {
           </View>
 
           <View style={styles.profileHeader}>
-            <View style={styles.profileImagePlaceholder}>
-              <MaterialIcons name="person" size={50} color="#555" />
-            </View>
+            {userData?.profileImageUrl ? (
+              <Image source={{ uri: userData.profileImageUrl }} style={styles.profileImage} />
+            ) : (
+              <View style={styles.profileImagePlaceholder}>
+                <MaterialIcons name="person" size={50} color="#555" />
+              </View>
+            )}
             <Text style={styles.profileName}>{userData?.name || 'Loading...'}</Text>
             <Text style={styles.profileEmail}>{userData?.email || auth.currentUser?.email}</Text>
           </View>
@@ -125,6 +130,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#D1D5DB',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 4,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
     marginBottom: 16,
     borderWidth: 4,
     borderColor: 'rgba(255,255,255,0.2)',

@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { signUpDoctor } from '../../api/firebase/auth';
+import { Picker } from '@react-native-picker/picker';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const TIME_SLOTS = [
@@ -18,6 +20,13 @@ export default function DoctorSignUpScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [specialty, setSpecialty] = useState('');
+  const [experience, setExperience] = useState('');
+  const [hospital, setHospital] = useState('');
+  const [about, setAbout] = useState('');
+  const [bloodType, setBloodType] = useState('O+');
+  const [dob, setDob] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [availability, setAvailability] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
 
@@ -40,7 +49,7 @@ export default function DoctorSignUpScreen() {
 
     setLoading(true);
     try {
-      await signUpDoctor(email, password, name, availability);
+      await signUpDoctor(email, password, name, availability, specialty, experience, hospital, about, bloodType, dob.toISOString().split('T')[0]);
       router.replace('/doctor/(tabs)/' as any);
     } catch (error: any) {
       alert(error.message);
@@ -133,6 +142,121 @@ export default function DoctorSignUpScreen() {
                 onChangeText={setPassword}
               />
             </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Specialty</Text>
+            <View style={styles.inputContainer}>
+              <MaterialIcons name="local-hospital" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Cardiologist"
+                placeholderTextColor="#9CA3AF"
+                value={specialty}
+                onChangeText={setSpecialty}
+              />
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Years of Experience</Text>
+            <View style={styles.inputContainer}>
+              <MaterialIcons name="work" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. 10"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="numeric"
+                value={experience}
+                onChangeText={setExperience}
+              />
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Hospital/Clinic Name</Text>
+            <View style={styles.inputContainer}>
+              <MaterialIcons name="business" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. City General Hospital"
+                placeholderTextColor="#9CA3AF"
+                value={hospital}
+                onChangeText={setHospital}
+              />
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>About Me</Text>
+            <View style={[styles.inputContainer, { height: 100, alignItems: 'flex-start', paddingTop: 12 }]}>
+              <MaterialIcons name="info" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <TextInput
+                style={[styles.input, { textAlignVertical: 'top' }]}
+                placeholder="Brief description about yourself..."
+                placeholderTextColor="#9CA3AF"
+                multiline
+                numberOfLines={4}
+                value={about}
+                onChangeText={setAbout}
+              />
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Blood Type</Text>
+            <View style={[styles.inputContainer, { paddingHorizontal: 0 }]}>
+              <MaterialIcons name="bloodtype" size={20} color="#9CA3AF" style={[styles.inputIcon, { marginLeft: 12 }]} />
+              <Picker
+                selectedValue={bloodType}
+                onValueChange={(itemValue) => setBloodType(itemValue)}
+                style={{ flex: 1, height: 50, color: '#1F2937' }}
+                dropdownIconColor="#9CA3AF"
+              >
+                <Picker.Item label="A+" value="A+" />
+                <Picker.Item label="A-" value="A-" />
+                <Picker.Item label="B+" value="B+" />
+                <Picker.Item label="B-" value="B-" />
+                <Picker.Item label="AB+" value="AB+" />
+                <Picker.Item label="AB-" value="AB-" />
+                <Picker.Item label="O+" value="O+" />
+                <Picker.Item label="O-" value="O-" />
+              </Picker>
+            </View>
+          </View>
+
+          <View style={styles.formGroup}>
+            <Text style={styles.label}>Date of Birth</Text>
+            <TouchableOpacity 
+              style={styles.inputContainer}
+              onPress={() => Platform.OS === 'web' ? null : setShowDatePicker(true)}
+            >
+              <MaterialIcons name="cake" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              {Platform.OS === 'web' ? (
+                <input 
+                  type="date"
+                  value={dob.toISOString().split('T')[0]}
+                  onChange={(e) => setDob(new Date(e.target.value))}
+                  style={{ flex: 1, border: 'none', outline: 'none', backgroundColor: 'transparent', color: '#1F2937', fontSize: 16, height: 50, fontFamily: 'system-ui' }}
+                />
+              ) : (
+                <Text style={[styles.input, { paddingTop: 14 }]}>
+                  {dob.toISOString().split('T')[0]}
+                </Text>
+              )}
+            </TouchableOpacity>
+            {showDatePicker && Platform.OS !== 'web' && (
+              <DateTimePicker
+                value={dob}
+                mode="date"
+                display="default"
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(Platform.OS === 'ios');
+                  if (selectedDate) setDob(selectedDate);
+                }}
+                maximumDate={new Date()}
+              />
+            )}
           </View>
 
           <Text style={styles.sectionTitle}>Set Custom Availability</Text>
@@ -353,5 +477,33 @@ const styles = StyleSheet.create({
     color: Colors.primary,
     fontSize: 14,
     fontWeight: 'bold',
+  },
+  imagePickerContainer: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  imagePicker: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderStyle: 'dashed',
+    overflow: 'hidden',
+  },
+  profileImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePlaceholder: {
+    alignItems: 'center',
+  },
+  imagePlaceholderText: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
   },
 });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -104,9 +104,13 @@ export default function DoctorDetailScreen() {
           </View>
           
           <View style={styles.doctorProfileHeader}>
-            <View style={styles.doctorImagePlaceholder}>
-              <MaterialIcons name="image" size={40} color="#555" />
-            </View>
+            {doctor.profileImageUrl ? (
+              <Image source={{ uri: doctor.profileImageUrl }} style={styles.doctorImage} />
+            ) : (
+              <View style={styles.doctorImagePlaceholder}>
+                <MaterialIcons name="person" size={40} color="#555" />
+              </View>
+            )}
             <Text style={styles.doctorName}>{doctor.name}</Text>
             <Text style={styles.doctorSpec}>{doctor.specialty || 'General Practitioner'}</Text>
           </View>
@@ -118,19 +122,18 @@ export default function DoctorDetailScreen() {
         {/* Stats Card */}
         <View style={styles.statsCard}>
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>20 <Text style={styles.statLabelSm}>yrs</Text></Text>
+            <Text style={styles.statValue}>{doctor.experience || '0'} <Text style={styles.statLabelSm}>yrs</Text></Text>
             <Text style={styles.statLabel}>Experience</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>1000</Text>
+            <Text style={styles.statValue}>{doctor.patientsCount || '0'}</Text>
             <Text style={styles.statLabel}>Patient</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>5.0</Text>
-            <Text style={styles.statLabel}>Experience</Text> 
-            {/* Note: Screenshot says "Experience" here too, but normally it's Rating */}
+            <Text style={styles.statValue}>{doctor.rating?.toFixed(1) || '5.0'}</Text>
+            <Text style={styles.statLabel}>Rating</Text> 
           </View>
         </View>
 
@@ -139,7 +142,7 @@ export default function DoctorDetailScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>About doctor</Text>
             <Text style={styles.aboutText}>
-              Focusing on dealing with the problem of replacing missing teeth. Such as the manufacture of fixed dentures in the form of crowns and bridges as well...
+              {doctor.about || 'No description available for this doctor.'}
             </Text>
           </View>
 
@@ -243,6 +246,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#D1D5DB',
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 16,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  doctorImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     marginBottom: 16,
     borderWidth: 3,
     borderColor: 'rgba(255,255,255,0.2)',

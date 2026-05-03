@@ -8,7 +8,15 @@ import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from './config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const signUpPatient = async (email: string, password: string, name: string) => {
+
+export const signUpPatient = async (
+  email: string, 
+  password: string, 
+  name: string,
+  phone?: string,
+  bloodType?: string,
+  dob?: string
+) => {
   try {
     // Set local storage first to prevent race conditions with onAuthStateChanged
     await AsyncStorage.setItem('role', 'patient');
@@ -22,6 +30,9 @@ export const signUpPatient = async (email: string, password: string, name: strin
       role: 'patient',
       name,
       email,
+      phone: phone || '',
+      bloodType: bloodType || '',
+      dob: dob || '',
       createdAt: new Date().toISOString()
     });
 
@@ -35,7 +46,13 @@ export const signUpDoctor = async (
   email: string, 
   password: string, 
   name: string, 
-  availability: Record<string, string[]>
+  availability: Record<string, string[]>,
+  specialty?: string,
+  experience?: string,
+  hospital?: string,
+  about?: string,
+  bloodType?: string,
+  dob?: string
 ) => {
   try {
     // Set local storage first to prevent race conditions with onAuthStateChanged
@@ -51,6 +68,14 @@ export const signUpDoctor = async (
       name,
       email,
       availability,
+      specialty: specialty || 'General Practitioner',
+      experience: experience || '0',
+      hospital: hospital || 'Clinic',
+      about: about || '',
+      bloodType: bloodType || '',
+      dob: dob || '',
+      patientsCount: 0,
+      rating: 5.0,
       createdAt: new Date().toISOString()
     });
 
