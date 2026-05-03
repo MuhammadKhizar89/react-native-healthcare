@@ -4,9 +4,67 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/Colors';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db, auth } from '../../../api/firebase/config';
+import { getPatientAppointments, Appointment } from '../../../api/firebase/appointments';
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [doctors, setDoctors] = useState<any[]>([]);
+  const [userName, setUserName] = useState<string>('Loading...');
+  const [upcomingAppointment, setUpcomingAppointment] = useState<Appointment | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      const fetchDoctors = async () => {
+        try {
+          const q = query(collection(db, 'users'), where('role', '==', 'doctor'));
+          const querySnapshot = await getDocs(q);
+          const docsList = querySnapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          if (isActive) setDoctors(docsList);
+        } catch (error) {
+          console.error("Error fetching data: ", error);
+        }
+      };
+      
+      const fetchUserData = async () => {
+        if (auth.currentUser) {
+          const docRef = doc(db, 'users', auth.currentUser.uid);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists() && isActive) {
+            setUserName(docSnap.data().name);
+          } else if (isActive) {
+            setUserName('Patient');
+          }
+        }
+      };
+
+      const fetchUpcomingSchedule = async () => {
+        try {
+          const appointments = await getPatientAppointments();
+          const upcoming = appointments.find(app => app.status === 'Upcoming');
+          if (isActive) setUpcomingAppointment(upcoming || null);
+        } catch (error) {
+          console.error("Error fetching upcoming schedule", error);
+        }
+      };
+
+      fetchDoctors();
+      fetchUserData();
+      fetchUpcomingSchedule();
+
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   return (
     <View style={styles.container}>
@@ -22,7 +80,7 @@ export default function HomeScreen() {
                 </View>
                 <View>
                   <Text style={styles.welcomeText}>Welcome Back</Text>
-                  <Text style={styles.userName}>Jacob Jones</Text>
+                  <Text style={styles.userName}>{userName}</Text>
                 </View>
               </View>
               <TouchableOpacity style={styles.notificationBtn}>
@@ -63,24 +121,35 @@ export default function HomeScreen() {
           </View>
 
           {/* Schedule Today */}
-          <Text style={styles.sectionTitle}>Schedule today</Text>
-          <TouchableOpacity style={styles.scheduleCard} onPress={() => router.push('/doctor/1' as any)}>
-            <View style={styles.scheduleImagePlaceholder}>
-              <MaterialIcons name="image" size={32} color="#555" />
-            </View>
-            <View style={styles.scheduleInfo}>
-              <View style={styles.scheduleHospital}>
-                <MaterialIcons name="location-on" size={14} color="#3B82F6" />
-                <Text style={styles.hospitalText}>Cengkareng Hospital</Text>
+          {upcomingAppointment ? (
+            <>
+              <Text style={styles.sectionTitle}>Upcoming Schedule</Text>
+              <TouchableOpacity style={styles.scheduleCard} onPress={() => router.push('/patient/(tabs)/schedule' as any)}>
+                <View style={styles.scheduleImagePlaceholder}>
+                  <MaterialIcons name="image" size={32} color="#555" />
+                </View>
+                <View style={styles.scheduleInfo}>
+                  <View style={styles.scheduleHospital}>
+                    <MaterialIcons name="location-on" size={14} color="#3B82F6" />
+                    <Text style={styles.hospitalText}>Clinic</Text>
+                  </View>
+                  <Text style={styles.doctorName}>{upcomingAppointment.doctorName || 'Unknown Doctor'}</Text>
+                  <Text style={styles.specialtyText}>Doctor</Text>
+                </View>
+                <View style={styles.scheduleTimeInfo}>
+                  <Text style={styles.dateText}>{upcomingAppointment.date}</Text>
+                  <Text style={styles.timeText}>{upcomingAppointment.time}</Text>
+                </View>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <>
+              <Text style={styles.sectionTitle}>Upcoming Schedule</Text>
+              <View style={[styles.scheduleCard, { justifyContent: 'center', paddingVertical: 30 }]}>
+                <Text style={{ color: '#6B7280' }}>No upcoming appointments</Text>
               </View>
-              <Text style={styles.doctorName}>dr. Zubaidah</Text>
-              <Text style={styles.specialtyText}>Radiology specialist</Text>
-            </View>
-            <View style={styles.scheduleTimeInfo}>
-              <Text style={styles.dateText}>7 Juli 2023</Text>
-              <Text style={styles.timeText}>09: 00 Am</Text>
-            </View>
-          </TouchableOpacity>
+            </>
+          )}
 
           {/* Doctor's Recommendation */}
           <View style={styles.sectionHeader}>
@@ -91,9 +160,17 @@ export default function HomeScreen() {
           </View>
 
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recommendationList}>
-            <DoctorRecommendationCard name="dr. Jenny" spec="Ophthalmologist" />
-            <DoctorRecommendationCard name="dr. Jhon" spec="General" />
-            <DoctorRecommendationCard name="dr. Betty" spec="Radiology" />
+            {doctors.map(doctor => (
+              <DoctorRecommendationCard 
+                key={doctor.id} 
+                id={doctor.id} 
+                name={doctor.name || 'Unknown Doctor'} 
+                spec={doctor.specialty || 'General Practitioner'} 
+              />
+            ))}
+            {doctors.length === 0 && (
+              <Text style={{ color: '#6B7280', marginTop: 20 }}>No doctors available right now.</Text>
+            )}
           </ScrollView>
 
         </View>
@@ -114,10 +191,10 @@ function CategoryItem({ icon, label, active = false }: { icon: any, label: strin
   );
 }
 
-function DoctorRecommendationCard({ name, spec }: { name: string, spec: string }) {
+function DoctorRecommendationCard({ id, name, spec }: { id: string, name: string, spec: string }) {
   const router = useRouter();
   return (
-    <TouchableOpacity onPress={() => router.push('/doctor/1' as any)} style={styles.recommendationCard}>
+    <TouchableOpacity onPress={() => router.push(`/patient/doctor/${id}` as any)} style={styles.recommendationCard}>
       <View style={styles.recImagePlaceholder}>
         <MaterialIcons name="image" size={32} color="#555" />
       </View>

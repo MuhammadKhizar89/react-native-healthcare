@@ -3,10 +3,10 @@ import { StyleSheet, View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Colors } from '@/constants/theme';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logoutUser } from '../../../api/firebase/auth';
 
-export default function SettingScreen() {
+export default function DoctorSettingScreen() {
   const router = useRouter();
 
   return (
@@ -19,21 +19,16 @@ export default function SettingScreen() {
         <SettingItem 
           icon="person" 
           title="My Profile" 
-          onPress={() => router.push('/profile' as any)} 
+          onPress={() => router.push('/doctor/profile' as any)} 
+        />
+        <SettingItem 
+          icon="schedule" 
+          title="Manage Availability" 
+          onPress={() => {}} 
         />
         <SettingItem 
           icon="notifications" 
           title="Notifications" 
-          onPress={() => {}} 
-        />
-        <SettingItem 
-          icon="security" 
-          title="Privacy & Security" 
-          onPress={() => {}} 
-        />
-        <SettingItem 
-          icon="help-outline" 
-          title="Help & Support" 
           onPress={() => {}} 
         />
         
@@ -42,8 +37,12 @@ export default function SettingScreen() {
         <TouchableOpacity 
           style={styles.signOutBtn}
           onPress={async () => {
-            await AsyncStorage.removeItem('isAuthenticated');
-            router.replace('/signin' as any);
+            try {
+              await logoutUser();
+              // RootLayout will automatically handle the redirect
+            } catch (error) {
+              console.error(error);
+            }
           }}
         >
           <MaterialIcons name="logout" size={24} color="#EF4444" />

@@ -1,13 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { StyleSheet, View, Text, ScrollView, TextInput, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/theme';
 import { MaterialIcons } from '@expo/vector-icons';
+import { getPatientAppointments, Appointment } from '../../../api/firebase/appointments';
+import { useFocusEffect } from '@react-navigation/native';
 
 const filters = ['All', 'Upcoming', 'Completed', 'Cancel'];
 
 export default function ScheduleScreen() {
   const [activeFilter, setActiveFilter] = useState('All');
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      const fetchAppointments = async () => {
+        setLoading(true);
+        try {
+          const data = await getPatientAppointments();
+          if (isActive) setAppointments(data);
+        } catch (error) {
+          console.error("Error fetching patient appointments:", error);
+        } finally {
+          if (isActive) setLoading(false);
+        }
+      };
+
+      fetchAppointments();
+
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
+
+  const filteredAppointments = appointments.filter(app => {
+    if (activeFilter === 'All') return true;
+    return app.status === activeFilter;
+  });
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -40,54 +73,39 @@ export default function ScheduleScreen() {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scheduleList}>
-          <ScheduleCard 
-            doctorName="dr. Zubaidah"
-            specialty="Radiology specialist"
-            hospital="Cengkareng Hospital"
-            date="7 Juli 2023"
-            time="09: 00 Am"
-            status="Cancel"
-            statusColor="#EF4444"
-            statusBg="#FEE2E2"
-            buttonLabel="Reschedule" // Though in design it's a blue button
-          />
-          
-          <ScheduleCard 
-            doctorName="drg. Claire"
-            specialty="Dentistry"
-            hospital="Cengkareng Hospital"
-            date=""
-            time=""
-            status="Complete"
-            statusColor="#10B981"
-            statusBg="#D1FAE5"
-            buttonLabel="Make new appointment"
-            hideTime
-          />
+          {loading ? (
+            <Text style={{textAlign: 'center', marginTop: 20}}>Loading appointments...</Text>
+          ) : filteredAppointments.length === 0 ? (
+            <Text style={{textAlign: 'center', marginTop: 20, color: '#6B7280'}}>No appointments found.</Text>
+          ) : (
+            filteredAppointments.map(app => {
+              let statusColor = '#38BDF8';
+              let statusBg = '#E0F2FE';
+              if (app.status === 'Completed') {
+                statusColor = '#10B981';
+                statusBg = '#D1FAE5';
+              } else if (app.status === 'Cancelled') {
+                statusColor = '#EF4444';
+                statusBg = '#FEE2E2';
+              }
 
-          <ScheduleCard 
-            doctorName="dr Harold"
-            specialty="ENT"
-            hospital="Cengkareng Hospital"
-            date="7 Juli 2023"
-            time="09: 00 Am"
-            status="Upcoming"
-            statusColor="#38BDF8"
-            statusBg="#E0F2FE"
-            buttonLabel="Reschedule"
-          />
-
-          <ScheduleCard 
-            doctorName="dr. Serenity"
-            specialty="Radiology specialist"
-            hospital="Cengkareng Hospital"
-            date="7 Juli 2023"
-            time="09: 00 Am"
-            status="Upcoming"
-            statusColor="#F59E0B"
-            statusBg="#FEF3C7"
-            buttonLabel=""
-          />
+              return (
+                <ScheduleCard 
+                  key={app.id}
+                  doctorName={app.doctorName || 'Unknown Doctor'}
+                  specialty="Doctor"
+                  hospital="Clinic"
+                  date={app.date}
+                  time={app.time}
+                  status={app.status}
+                  statusColor={statusColor}
+                  statusBg={statusBg}
+                  buttonLabel={app.status === 'Upcoming' ? 'Reschedule' : 'Make new appointment'}
+                  hideTime={app.status === 'Completed'}
+                />
+              );
+            })
+          )}
         </ScrollView>
       </View>
     </SafeAreaView>

@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signInUser } from '../../api/firebase/auth';
 
 export default function SignInScreen() {
   const router = useRouter();
@@ -12,9 +13,20 @@ export default function SignInScreen() {
   const [password, setPassword] = useState('');
 
   const handleSignIn = async () => {
-    // Basic check, normally you'd auth here. We just navigate to tabs.
-    await AsyncStorage.setItem('isAuthenticated', 'yes');
-    router.replace('/(tabs)/' as any);
+    if (!email || !password) {
+      alert("Please enter email and password");
+      return;
+    }
+    try {
+      const { role } = await signInUser(email, password);
+      if (role === 'patient') {
+        router.replace('/patient/(tabs)/' as any);
+      } else {
+        alert("This account is registered as a doctor. Please use the doctor login.");
+      }
+    } catch (error: any) {
+      alert(error.message);
+    }
   };
 
   return (
@@ -69,7 +81,7 @@ export default function SignInScreen() {
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/signup' as any)}>
+            <TouchableOpacity onPress={() => router.push('/patient/signup' as any)}>
               <Text style={styles.footerLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>

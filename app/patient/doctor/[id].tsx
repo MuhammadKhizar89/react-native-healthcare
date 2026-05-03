@@ -3,25 +3,90 @@ import { StyleSheet, View, Text, ScrollView, TouchableOpacity } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
-
-const dates = [
-  { day: 'Mon', date: '03' },
-  { day: 'Tue', date: '04' },
-  { day: 'Wed', date: '05' },
-  { day: 'Thu', date: '06' },
-  { day: 'Fri', date: '07' },
-  { day: 'Sat', date: '08' },
-];
-
-const times = [
-  '09:00 am', '10:00 am', '11:00 am', '12:00 am',
-  '01:00 pm', '02:00 pm', '03:00 pm', '04:00 pm'
-];
+import { useLocalSearchParams } from 'expo-router';
+import { bookAppointment, getDoctorById, getBookedTimeSlots } from '../../../api/firebase/appointments';
+import { useEffect } from 'react';
 
 export default function DoctorDetailScreen() {
   const router = useRouter();
-  const [selectedDate, setSelectedDate] = useState('07');
-  const [selectedTime, setSelectedTime] = useState('09:00 am');
+  const { id } = useLocalSearchParams();
+  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedTime, setSelectedTime] = useState('');
+  const [doctor, setDoctor] = useState<any>(null);
+  const [availableDays, setAvailableDays] = useState<string[]>([]);
+  const [availableTimes, setAvailableTimes] = useState<string[]>([]);
+  const [bookedTimes, setBookedTimes] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchDoctor = async () => {
+      if (id) {
+        const docData = await getDoctorById(id as string);
+        if (docData) {
+          setDoctor(docData);
+          if (docData.availability) {
+            const days = Object.keys(docData.availability);
+            setAvailableDays(days);
+            if (days.length > 0) {
+              setSelectedDate(days[0]);
+              setAvailableTimes(docData.availability[days[0]] || []);
+              if (docData.availability[days[0]]?.length > 0) {
+                setSelectedTime(docData.availability[days[0]][0]);
+              }
+            }
+          }
+        }
+      }
+    };
+    fetchDoctor();
+  }, [id]);
+
+  useEffect(() => {
+    const fetchBookedTimes = async () => {
+      if (id && selectedDate) {
+        const booked = await getBookedTimeSlots(id as string, selectedDate);
+        setBookedTimes(booked);
+      }
+    };
+
+    if (doctor && doctor.availability && selectedDate) {
+      const times = doctor.availability[selectedDate] || [];
+      setAvailableTimes(times);
+      fetchBookedTimes();
+      
+      if (!times.includes(selectedTime) && times.length > 0) {
+        setSelectedTime(times[0]);
+      }
+    }
+  }, [selectedDate, doctor, id]);
+
+  const handleConfirm = async () => {
+    if (!selectedDate || !selectedTime) {
+      alert("Please select a valid date and time.");
+      return;
+    }
+    if (bookedTimes.includes(selectedTime)) {
+      alert("This time slot has already been booked. Please choose another one.");
+      return;
+    }
+    try {
+      const doctorId = (id as string) || 'dummy_doctor_id';
+      const doctorName = doctor ? doctor.name : 'Unknown Doctor';
+      
+      await bookAppointment(doctorId, doctorName, selectedDate, selectedTime);
+      alert('Appointment booked successfully!');
+      router.back();
+    } catch (error: any) {
+      alert('Error booking appointment: ' + error.message);
+    }
+  };
+
+  if (!doctor) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text>Loading doctor details...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -38,8 +103,8 @@ export default function DoctorDetailScreen() {
             <View style={styles.doctorImagePlaceholder}>
               <MaterialIcons name="image" size={40} color="#555" />
             </View>
-            <Text style={styles.doctorName}>drg. Claire anjani Sp.Pros</Text>
-            <Text style={styles.doctorSpec}>Dentistry specialist</Text>
+            <Text style={styles.doctorName}>{doctor.name}</Text>
+            <Text style={styles.doctorSpec}>{doctor.specialty || 'General Practitioner'}</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -77,31 +142,48 @@ export default function DoctorDetailScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Date</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.dateScroll}>
-              {dates.map((item) => (
+              {availableDays.map((day) => (
                 <TouchableOpacity 
-                  key={item.date} 
-                  style={[styles.dateItem, selectedDate === item.date && styles.dateItemActive]}
-                  onPress={() => setSelectedDate(item.date)}
+                  key={day} 
+                  style={[styles.dateItem, selectedDate === day && styles.dateItemActive]}
+                  onPress={() => setSelectedDate(day)}
                 >
-                  <Text style={[styles.dateDay, selectedDate === item.date && styles.dateTextActive]}>{item.day}</Text>
-                  <Text style={[styles.dateNum, selectedDate === item.date && styles.dateTextActive]}>{item.date}</Text>
+                  <Text style={[styles.dateDay, selectedDate === day && styles.dateTextActive]}>{day}</Text>
                 </TouchableOpacity>
               ))}
+              {availableDays.length === 0 && (
+                <Text style={{ color: '#6B7280' }}>No days available.</Text>
+              )}
             </ScrollView>
           </View>
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Time</Text>
             <View style={styles.timeGrid}>
-              {times.map((time) => (
-                <TouchableOpacity 
-                  key={time} 
-                  style={[styles.timeItem, selectedTime === time && styles.timeItemActive]}
-                  onPress={() => setSelectedTime(time)}
-                >
-                  <Text style={[styles.timeText, selectedTime === time && styles.timeTextActive]}>{time}</Text>
-                </TouchableOpacity>
-              ))}
+              {availableTimes.map((time) => {
+                const isBooked = bookedTimes.includes(time);
+                return (
+                  <TouchableOpacity 
+                    key={time} 
+                    style={[
+                      styles.timeItem, 
+                      selectedTime === time && !isBooked && styles.timeItemActive,
+                      isBooked && styles.timeItemDisabled
+                    ]}
+                    onPress={() => !isBooked && setSelectedTime(time)}
+                    disabled={isBooked}
+                  >
+                    <Text style={[
+                      styles.timeText, 
+                      selectedTime === time && !isBooked && styles.timeTextActive,
+                      isBooked && styles.timeTextDisabled
+                    ]}>{time}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+              {availableTimes.length === 0 && (
+                <Text style={{ color: '#6B7280' }}>No times available.</Text>
+              )}
             </View>
           </View>
 
@@ -109,7 +191,7 @@ export default function DoctorDetailScreen() {
         
         {/* Bottom Button */}
         <View style={styles.bottomFooter}>
-          <TouchableOpacity style={styles.confirmBtn}>
+          <TouchableOpacity style={styles.confirmBtn} onPress={handleConfirm}>
             <Text style={styles.confirmBtnText}>Confirm Schedule</Text>
           </TouchableOpacity>
         </View>
@@ -276,6 +358,10 @@ const styles = StyleSheet.create({
   timeItemActive: {
     borderColor: '#3B5998',
   },
+  timeItemDisabled: {
+    backgroundColor: '#F3F4F6',
+    borderColor: '#F3F4F6',
+  },
   timeText: {
     fontSize: 14,
     color: '#6B7280',
@@ -283,6 +369,10 @@ const styles = StyleSheet.create({
   },
   timeTextActive: {
     color: '#3B5998',
+  },
+  timeTextDisabled: {
+    color: '#D1D5DB',
+    textDecorationLine: 'line-through',
   },
   bottomFooter: {
     position: 'absolute',

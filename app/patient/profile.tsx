@@ -4,9 +4,26 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
+import { useEffect, useState } from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../../api/firebase/config';
 
 export default function ProfileScreen() {
   const router = useRouter();
+  const [userData, setUserData] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      if (auth.currentUser) {
+        const docRef = doc(db, 'users', auth.currentUser.uid);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setUserData(docSnap.data());
+        }
+      }
+    };
+    fetchUser();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -25,8 +42,8 @@ export default function ProfileScreen() {
             <View style={styles.profileImagePlaceholder}>
               <MaterialIcons name="person" size={50} color="#555" />
             </View>
-            <Text style={styles.profileName}>Jacob Jones</Text>
-            <Text style={styles.profileEmail}>jacob.jones@example.com</Text>
+            <Text style={styles.profileName}>{userData?.name || 'Loading...'}</Text>
+            <Text style={styles.profileEmail}>{userData?.email || auth.currentUser?.email}</Text>
           </View>
         </SafeAreaView>
       </View>
@@ -38,11 +55,11 @@ export default function ProfileScreen() {
           <View style={styles.infoCard}>
             <Text style={styles.sectionTitle}>Personal Information</Text>
 
-            <InfoRow icon="person" label="Full Name" value="Jacob Jones" />
-            <InfoRow icon="email" label="Email" value="jacob.jones@example.com" />
-            <InfoRow icon="phone" label="Phone Number" value="+1 234 567 8900" />
-            <InfoRow icon="bloodtype" label="Blood Type" value="O+" />
-            <InfoRow icon="cake" label="Date of Birth" value="15 Jan 1990" noBorder />
+            <InfoRow icon="person" label="Full Name" value={userData?.name || 'N/A'} />
+            <InfoRow icon="email" label="Email" value={userData?.email || auth.currentUser?.email || 'N/A'} />
+            <InfoRow icon="phone" label="Phone Number" value={userData?.phone || 'Not set'} />
+            <InfoRow icon="bloodtype" label="Blood Type" value={userData?.bloodType || 'Not set'} />
+            <InfoRow icon="cake" label="Date of Birth" value={userData?.dob || 'Not set'} noBorder />
           </View>
 
           <TouchableOpacity style={styles.editBtn}>

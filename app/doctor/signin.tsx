@@ -1,22 +1,32 @@
 import React, { useState } from 'react';
-import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signInUser } from '../../api/firebase/auth';
 
-export default function SignUpScreen() {
+export default function DoctorSignInScreen() {
   const router = useRouter();
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleSignUp = async () => {
-    // In a real app, create the user here. For now navigate to tabs.
-    await AsyncStorage.setItem('isAuthenticated', 'yes');
-    router.replace('/(tabs)/' as any);
+  const handleSignIn = async () => {
+    if (!email || !password) {
+      alert("Please enter email and password");
+      return;
+    }
+    try {
+      const { role } = await signInUser(email, password);
+      if (role === 'doctor') {
+        router.replace('/doctor/(tabs)/' as any);
+      } else {
+        alert("This account is registered as a patient. Please use the patient login.");
+      }
+    } catch (error: any) {
+      alert(error.message);
+    }
   };
 
   return (
@@ -31,23 +41,9 @@ export default function SignUpScreen() {
           </TouchableOpacity>
         </View>
 
-        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          <Text style={styles.title}>Create Account</Text>
-          <Text style={styles.subtitle}>Sign up to get started</Text>
-
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Full Name</Text>
-            <View style={styles.inputContainer}>
-              <MaterialIcons name="person" size={20} color="#9CA3AF" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Enter your full name"
-                placeholderTextColor="#9CA3AF"
-                value={name}
-                onChangeText={setName}
-              />
-            </View>
-          </View>
+        <View style={styles.content}>
+          <Text style={styles.title}>Doctor Login</Text>
+          <Text style={styles.subtitle}>Sign in to manage your appointments</Text>
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>Email</Text>
@@ -71,7 +67,7 @@ export default function SignUpScreen() {
               <MaterialIcons name="lock" size={20} color="#9CA3AF" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Create a password"
+                placeholder="Enter your password"
                 placeholderTextColor="#9CA3AF"
                 secureTextEntry
                 value={password}
@@ -80,32 +76,21 @@ export default function SignUpScreen() {
             </View>
           </View>
 
-          <View style={styles.formGroup}>
-            <Text style={styles.label}>Confirm Password</Text>
-            <View style={styles.inputContainer}>
-              <MaterialIcons name="lock" size={20} color="#9CA3AF" style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm your password"
-                placeholderTextColor="#9CA3AF"
-                secureTextEntry
-                value={confirmPassword}
-                onChangeText={setConfirmPassword}
-              />
-            </View>
-          </View>
+          <TouchableOpacity style={styles.forgotBtn}>
+            <Text style={styles.forgotText}>Forgot Password?</Text>
+          </TouchableOpacity>
 
-          <TouchableOpacity style={styles.signUpBtn} onPress={handleSignUp}>
-            <Text style={styles.signUpBtnText}>Sign Up</Text>
+          <TouchableOpacity style={styles.signInBtn} onPress={handleSignIn}>
+            <Text style={styles.signInBtnText}>Sign In</Text>
           </TouchableOpacity>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/signin' as any)}>
-              <Text style={styles.footerLink}>Sign In</Text>
+            <Text style={styles.footerText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={() => router.push('/doctor/signup' as any)}>
+              <Text style={styles.footerLink}>Sign Up</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -126,10 +111,11 @@ const styles = StyleSheet.create({
   backBtn: {
     marginLeft: -8,
   },
-  scrollContent: {
+  content: {
+    flex: 1,
     paddingHorizontal: 24,
+    justifyContent: 'center',
     paddingBottom: 40,
-    paddingTop: 20,
   },
   title: {
     fontSize: 28,
@@ -140,7 +126,7 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 15,
     color: '#6B7280',
-    marginBottom: 30,
+    marginBottom: 40,
   },
   formGroup: {
     marginBottom: 20,
@@ -169,16 +155,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1F2937',
   },
-  signUpBtn: {
+  forgotBtn: {
+    alignSelf: 'flex-end',
+    marginBottom: 30,
+  },
+  forgotText: {
+    color: Colors.primary,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  signInBtn: {
     backgroundColor: Colors.primary,
     borderRadius: 12,
     height: 56,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
     marginBottom: 24,
   },
-  signUpBtnText: {
+  signInBtnText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
